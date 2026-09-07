@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Meal Planner</title>
+  <rect width="512" height="512" rx="112" fill="#176b5d"/>
+  <circle cx="256" cy="256" r="154" fill="#fffaf1"/>
+  <path d="M171 154v104c0 29 21 50 48 56v90h27v-90c27-6 48-27 48-56V154h-24v85h-19v-85h-24v85h-19v-85h-37Zm178 0c-32 19-48 51-48 93v32h37v125h27V154h-16Z" fill="#176b5d"/>
+</svg>
