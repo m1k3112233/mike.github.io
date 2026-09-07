@@ -1,9 +1,9 @@
-import { FOOD_CATALOG, DEFAULT_MEALS, DEFAULT_SUPPLEMENTS, DEFAULT_SETTINGS, LEGACY_EMPTY_TEMPLATE } from './data.js';
+import { FOOD_CATALOG, DEFAULT_MEALS, DEFAULT_SUPPLEMENTS, DEFAULT_SETTINGS, LEGACY_EMPTY_TEMPLATE, SUPPLEMENT_GUIDANCE } from './data.js';
 import { setupPWA } from './pwa.js';
 import {
   STORAGE_KEY, aggregateNutrition, applyPlanImport, clone, createInitialState, ensureDay,
   exportFullState, exportPlan, fastingStatus, formatDuration, formatTime, localDateString,
-  migrateLegacyEmptyState,
+  migrateLegacyEmptyState, migrateStarterMacroTargets,
   nutritionForFood, nutritionForMeal, recentAverage, recordMeasure, selectDate, setCheck,
   setNote, shiftDate, stringifyExport, targetDifference, updateDay, updateTemplate,
   validateFullRestore, validateState,
@@ -28,6 +28,9 @@ let recoveryRaw = '';
 let migratedOnLoad = false;
 let state = loadState() || createInitialState(baseTemplate, today);
 state = ensureDay(state, state.selectedDate || today);
+const completedTargets = migrateStarterMacroTargets(state, DEFAULT_SETTINGS);
+migratedOnLoad = migratedOnLoad || completedTargets !== state;
+state = completedTargets;
 let activeView = 'plan';
 let selectedImport = null;
 let pendingMealId = null;
@@ -151,8 +154,9 @@ function renderPlan(current) {
   const diffs = targetDifference(summary, current.settings);
   renderFasting(current);
   $('#meals-list').innerHTML = current.meals.length ? current.meals.map(renderMeal).join('') : '<div class="card empty-state">No meals yet. Add the first one to shape your day.</div>';
-  $('#summary-card').innerHTML = renderSummary(summary, diffs, current.settings, logged);
-  $('#mobile-summary').innerHTML = `<div class="card summary-card">${renderSummary(summary, diffs, current.settings, logged)}</div>`;
+  const mealCounts = { logged: loggedMeals.length, total: current.meals.length };
+  $('#summary-card').innerHTML = renderSummary(summary, diffs, current.settings, logged, mealCounts);
+  $('#mobile-summary').innerHTML = `<div class="card summary-card">${renderSummary(summary, diffs, current.settings, logged, mealCounts)}</div>`;
   $('#supplements-card').innerHTML = renderSupplements(current);
   $('#medications-card').innerHTML = renderMedications(current);
   $('#energy-card').innerHTML = renderEnergyReference(current.settings);
@@ -174,21 +178,29 @@ function renderFoodRow(meal, item, index) {
   return `<div class="food-row"><div class="food-name"><strong>${esc(food.name)}${estimated ? '<span class="estimate-pill">estimated</span>' : ''}</strong><small>${esc(food.unit)} · ${nutrition.kcal == null ? 'energy unknown' : `${Math.round(nutrition.kcal)} kcal`}</small></div><input class="quantity-input" data-quantity data-meal-id="${esc(meal.id)}" data-item-index="${index}" type="number" min="0" step="${numberValue(food.step, 1)}" value="${numberValue(item.quantity)}" aria-label="${esc(food.name)} quantity in ${esc(meal.name)}"><button class="round-button" data-action="decrease" data-meal-id="${esc(meal.id)}" data-item-index="${index}" type="button" aria-label="Decrease ${esc(food.name)}">−</button><button class="round-button" data-action="increase" data-meal-id="${esc(meal.id)}" data-item-index="${index}" type="button" aria-label="Increase ${esc(food.name)}">+</button><button class="round-button remove-item" data-action="remove-item" data-meal-id="${esc(meal.id)}" data-item-index="${index}" type="button" aria-label="Remove ${esc(food.name)}">×</button></div>`;
 }
 
-function renderSummary(summary, diffs, settings, logged) {
+function renderSummary(summary, diffs, settings, logged, mealCounts) {
   const kcal = Number.isFinite(summary.kcal) ? Math.round(summary.kcal) : '—';
-  const macro = (label, value, target) => { const pending = target === null || target === undefined; const width = target > 0 && value != null ? Math.min(100, value / target * 100) : 0; return `<div class="macro-line"><span>${label}${pending ? ' <small>(target pending)</small>' : ''}</span><div class="macro-bar"><span style="width:${width}%"></span></div><span class="macro-value">${value == null ? '—' : `${Math.round(value)}g`}</span></div>`; };
+  const macro = (label, value, target) => { const pending = target === null || target === undefined; const width = target > 0 && value != null ? Math.min(100, value / target * 100) : 0; return `<div class="macro-line"><span>${label}<small>${pending ? 'Goal not set' : `Goal ${Math.round(target)}g`}</small></span><div class="macro-bar" role="progressbar" aria-label="${label} planned compared with goal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(width)}"><span style="width:${width}%"></span></div><span class="macro-value">${value == null ? '—' : `${Math.round(value)}g`}</span></div>`; };
   const calorieTarget = settings.calories === null || settings.calories === undefined ? 'Target pending' : `Target ${settings.calories}`;
   const foodKcal = Number.isFinite(summary.foodKcal) ? Math.round(summary.foodKcal) : '—';
   const supplementKcal = Math.round(summary.supplementKcal || 0);
-  return `<div class="summary-top"><div><span class="eyebrow">Daily summary</span><div class="summary-kcal">${kcal}<small> kcal known</small></div></div><span class="muted">${calorieTarget}</span></div><div class="target-diff ${diffs.kcal > 0 ? 'over' : ''}">${diffs.kcal == null ? 'Calorie target pending personalization' : `${Math.abs(Math.round(diffs.kcal))} kcal ${diffs.kcal >= 0 ? 'over' : 'to go'} (known subtotal)`}</div><p class="summary-note">Food ${foodKcal} kcal + supplements ${supplementKcal} kcal (reference subtotal).</p><div class="logged-line"><span>Meals logged</span><strong>${logged.knownKcal ? `${Math.round(logged.kcal)} kcal` : '—'}</strong></div><div class="macro-list">${macro('Protein', summary.protein, settings.protein)}${macro('Carbs', summary.carbs, settings.carbs)}${macro('Fat', summary.fat, settings.fat)}</div>${summary.genericFood ? '<p class="summary-note">Includes an estimated food entry. Compare the package label when you can.</p>' : ''}${summary.unknownSupplementKcal ? '<p class="summary-note">Known food and supplement energy is shown; some supplement energy is unknown.</p>' : ''}`;
+  return `<div class="summary-top"><div><span class="eyebrow">Daily plan</span><div class="summary-kcal">${kcal}<small> kcal planned</small></div></div><span class="muted">${calorieTarget}</span></div><div class="target-diff ${diffs.kcal > 0 ? 'over' : ''}">${diffs.kcal == null ? 'Calorie goal not set' : `${Math.abs(Math.round(diffs.kcal))} kcal ${diffs.kcal >= 0 ? 'above' : 'below'} goal (estimated)`}</div><p class="summary-note">Food ${foodKcal} kcal + scheduled supplements ${supplementKcal} kcal.</p><div class="logged-line"><span>Meals eaten · ${mealCounts.logged}/${mealCounts.total}</span><strong>${logged.knownKcal ? `${Math.round(logged.kcal)} kcal` : '—'}</strong></div>${mealCounts.logged === 0 && mealCounts.total > 0 ? '<p class="summary-note">Check “Logged” on a meal after eating it.</p>' : ''}<div class="macro-list">${macro('Protein', summary.protein, settings.protein)}${macro('Carbs', summary.carbs, settings.carbs)}${macro('Fat', summary.fat, settings.fat)}</div><p class="summary-note">Grams shown are planned amounts. Goals are flexible and editable in Settings.</p>${summary.genericFood ? '<p class="summary-note">Nutrition uses estimates. Compare your package labels.</p>' : ''}${summary.unknownSupplementKcal ? '<p class="summary-note">Some supplement energy is unknown, so the total is incomplete.</p>' : ''}`;
 }
 
 function renderSupplements(current) {
   const active = current.supplements.filter((supplement) => supplement.status !== 'review');
   const review = current.supplements.filter((supplement) => supplement.status === 'review');
   const row = (supplement) => { const key = `supp:${supplement.id}`; const checked = Boolean(state.checks?.[state.selectedDate]?.[key]); return `<label class="supplement-row"><span><input type="checkbox" data-supp-check="${esc(supplement.id)}" ${checked ? 'checked' : ''}> ${esc(supplement.name)}<small>${esc(supplement.dose || 'Dose not set')}</small></span><span class="supplement-meta">${esc(formatTime(supplement.time))}</span></label>${supplement.note ? `<p class="supplement-note">${esc(supplement.note)}</p>` : ''}`; };
-  const reviewLines = review.map((supplement) => `<div class="supplement-row review-row"><span>${esc(supplement.name)}<small>${esc(supplement.dose || 'Details pending')}${supplement.note ? ` · ${esc(supplement.note)}` : ''}</small></span><span class="supplement-meta">Needs confirmation</span></div>`).join('');
-  return `<div class="section-heading"><div><span class="eyebrow">Supplements</span><h3>Supplement schedule</h3></div></div><div class="supplement-list">${active.length ? active.map(row).join('') : '<span class="muted">Supplements awaiting details.</span>'}${reviewLines ? `<p class="supplement-note">Needs confirmation</p>${reviewLines}` : ''}</div>`;
+  const suggestionIds = new Set(Object.keys(SUPPLEMENT_GUIDANCE));
+  const listedIds = new Set(current.supplements.map(supplement => supplement.id));
+  if (listedIds.has('magnesium-photo')) listedIds.add('magnesium-option');
+  const suggestions = [...review.filter(supplement => suggestionIds.has(supplement.id)), ...DEFAULT_SUPPLEMENTS.filter(supplement => !listedIds.has(supplement.id))];
+  const incomplete = review.filter(supplement => !suggestionIds.has(supplement.id));
+  const reviewRow = (supplement) => {
+    const guide = SUPPLEMENT_GUIDANCE[supplement.id];
+    return guide ? `<div class="supplement-guidance"><strong>${esc(supplement.name)}</strong><p class="guidance-dose">${esc(guide.amount)}</p>${guide.timing ? `<p class="guidance-time">${esc(guide.timing)}</p>` : ''}<p class="supplement-note">${esc(guide.note)}${guide.source ? ` <a href="${esc(guide.source)}" target="_blank" rel="noopener noreferrer">Source</a>` : ''}</p><details><summary>Saved label and notes</summary><p class="supplement-note">${esc(supplement.dose || '')} ${esc(supplement.note || '')}</p></details></div>` : `<div class="supplement-row review-row"><span>${esc(supplement.name)}<small>${esc(supplement.dose || 'Daily dose not recorded')}${supplement.note ? ` · ${esc(supplement.note)}` : ''}</small></span><span class="supplement-meta">Dose not recorded</span></div>`;
+  };
+  return `<div class="section-heading"><div><span class="eyebrow">Supplements</span><h3>Daily amounts & timing</h3></div></div><div class="supplement-list">${active.length ? '<p class="supplement-note"><strong>Your daily schedule</strong></p>' + active.map(row).join('') : ''}${suggestions.length ? '<p class="supplement-note">Start with psyllium for LDL; plant sterols are an optional addition. Magnesium and vitamin D are conditional nutritional options. These recommendations are separate from your record of doses taken.</p>' + suggestions.map(reviewRow).join('') : ''}${incomplete.length ? '<p class="supplement-note"><strong>Dose details to add</strong><br>Record the full label and actual daily amount in Settings before scheduling.</p>' + incomplete.map(reviewRow).join('') : ''}${!current.supplements.length ? '<p class="supplement-note">Add supplements in Settings.</p>' : ''}</div>`;
 }
 
 function renderMedications(current) {

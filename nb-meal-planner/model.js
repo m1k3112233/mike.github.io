@@ -195,6 +195,35 @@ export function migrateLegacyEmptyState(state, starter, legacy) {
   return next;
 }
 
+const STARTER_MACRO_TARGETS_VERSION = 1;
+
+function starterMacroDefaults(defaults) {
+  const source = defaults?.settings || defaults?.template?.settings || defaults || {};
+  return { carbs: source.carbs, fat: source.fat };
+}
+
+function fillStarterMacroTargets(settings, defaults) {
+  if (!isObject(settings) || settings.calories !== 1900 || settings.protein !== 80) return;
+  for (const key of ['carbs', 'fat']) {
+    if ((settings[key] === null || settings[key] === undefined) && finite(defaults[key])) settings[key] = defaults[key];
+  }
+}
+
+/**
+ * Complete the one shipped starter macro target pair once. Existing explicit
+ * targets and all data outside the template/current day are preserved.
+ */
+export function migrateStarterMacroTargets(state, defaults, date = state?.selectedDate) {
+  if (!isObject(state) || !isObject(defaults) || (hasOwn(state, 'starterMacroTargetsVersion') && state.starterMacroTargetsVersion !== STARTER_MACRO_TARGETS_VERSION)) return state;
+  if (state.starterMacroTargetsVersion === STARTER_MACRO_TARGETS_VERSION) return state;
+  const next = clone(state);
+  const macroDefaults = starterMacroDefaults(defaults);
+  fillStarterMacroTargets(next.template?.settings, macroDefaults);
+  if (isDateString(date) && isObject(next.days?.[date])) fillStarterMacroTargets(next.days[date].settings, macroDefaults);
+  next.starterMacroTargetsVersion = STARTER_MACRO_TARGETS_VERSION;
+  return next;
+}
+
 export function selectDate(state, date) {
   const next = ensureDay({ ...clone(state), selectedDate: date }, date);
   return next;
@@ -268,7 +297,7 @@ function validateMedication(medication) {
 
 function validateSettings(settings) {
   if (!safeRecord(settings)) return false;
-  const targetsOk = ['calories', 'protein', 'carbs', 'fat'].every((key) => settings[key] === null || validStoredNumber(settings[key], 0, 1e7));
+  const targetsOk = ['calories', 'protein', 'carbs', 'fat'].every((key) => settings[key] === null || settings[key] === undefined || validStoredNumber(settings[key], 0, 1e7));
   const eatingOk = timeToMinutes(settings.eatingStart) !== null && timeToMinutes(settings.eatingEnd) !== null;
   const trainingStart = settings.trainingStart ?? '';
   const trainingEnd = settings.trainingEnd ?? '';
@@ -297,7 +326,7 @@ function validateHistory(history) {
 }
 
 export function validateState(value) {
-  if (!safeRecord(value) || value.version !== STATE_VERSION || !isDateString(value.selectedDate) || !validateTemplate(value.template) || !safeRecord(value.days) || !safeRecord(value.notes) || !safeRecord(value.checks) || !validateHistory(value.history)) return { ok: false, error: 'This file is not a valid Dayplate state.' };
+  if (!safeRecord(value) || value.version !== STATE_VERSION || (hasOwn(value, 'starterMacroTargetsVersion') && value.starterMacroTargetsVersion !== STARTER_MACRO_TARGETS_VERSION) || !isDateString(value.selectedDate) || !validateTemplate(value.template) || !safeRecord(value.days) || !safeRecord(value.notes) || !safeRecord(value.checks) || !validateHistory(value.history)) return { ok: false, error: 'This file is not a valid Dayplate state.' };
   for (const [date, day] of Object.entries(value.days)) if (!isDateString(date) || !safeRecord(day) || day.date !== date || !validateTemplate(day)) return { ok: false, error: `Invalid planner snapshot for ${date}.` };
   for (const note of Object.values(value.notes)) if (typeof note !== 'string' || note.length > 3000) return { ok: false, error: 'A note is too long.' };
   for (const [date, checks] of Object.entries(value.checks)) if (!isDateString(date) || !safeRecord(checks) || Object.values(checks).some((checked) => typeof checked !== 'boolean')) return { ok: false, error: 'Daily checks are malformed.' };
