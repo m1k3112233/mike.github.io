@@ -205,17 +205,14 @@ export const FOOD_CATALOG = [
   }
 ];
 
-export const DEFAULT_MEALS = [
+const LEGACY_MEALS = [
   { id: 'breakfast', name: 'Breakfast', time: '08:00', items: [] },
   { id: 'lunch', name: 'Lunch', time: '12:30', items: [] },
   { id: 'snack', name: 'Afternoon snack', time: '15:00', items: [] },
   { id: 'dinner', name: 'Dinner', time: '17:30', items: [] }
 ];
 
-// Personal supplements, medications, energy trends and tracking are entered
-// locally in the browser; no private health profile is published with the app.
-export const DEFAULT_SUPPLEMENTS = [];
-export const DEFAULT_SETTINGS = {
+const LEGACY_SETTINGS = {
   calories: null,
   protein: null,
   carbs: null,
@@ -228,4 +225,56 @@ export const DEFAULT_SETTINGS = {
   energyResting: null,
   energyPeriod: '',
   workNote: ''
+};
+
+// An exact snapshot lets the app upgrade only the untouched former starter.
+// Imported plans, edited food labels and personal tracking remain local.
+export const LEGACY_EMPTY_TEMPLATE = {
+  foods: FOOD_CATALOG.slice(), meals: LEGACY_MEALS, settings: LEGACY_SETTINGS,
+  supplements: [], medications: []
+};
+
+const estimate = (id, name, kcal, protein, carbs, fat, unit = 'g') => ({
+  id, name, unit, serving: 100, step: 10, kcal, protein, carbs, fat,
+  source: 'generic', verified: false,
+  note: 'Generic estimate. Compare your package label and preparation method.'
+});
+FOOD_CATALOG.push(
+  estimate('wholegrain-bread', 'Whole-grain bread / toast', 250, 10, 46, 4),
+  estimate('cheddar-cheese', 'Cheddar cheese', 403, 25, 1.3, 33),
+  estimate('milk-2-percent', 'Filtered milk, 2%', 50, 3.4, 5, 2, 'mL'),
+  estimate('milk-whole', 'Milk, 3.25%', 61, 3.2, 4.8, 3.25, 'mL'),
+  estimate('salad-leaves', 'Salad leaves', 20, 1.5, 3, 0.3),
+  estimate('cucumber', 'Cucumber', 15, 0.7, 3.6, 0.1),
+  estimate('mushrooms', 'Mushrooms', 22, 3.1, 3.3, 0.3),
+  estimate('celery', 'Celery', 16, 0.7, 3, 0.2),
+  estimate('almonds', 'Almonds, unsalted', 579, 21.2, 21.6, 49.9),
+  estimate('dried-cranberries', 'Dried cranberries, sweetened', 325, 0.1, 83, 1.1),
+  estimate('raisin-bran', 'Raisin Bran cereal', 355, 9, 80, 2),
+  estimate('salmon-cooked', 'Salmon, cooked', 206, 22, 0, 12),
+  estimate('tuna-water', 'Canned light tuna in water, drained', 116, 25.5, 0, 0.8),
+  estimate('reduced-fat-cheese', 'Reduced-fat cheese', 280, 30, 3, 16)
+);
+
+const item = (foodId, quantity) => ({ foodId, quantity });
+export const DEFAULT_MEALS = [
+  { id: 'breakfast', name: 'Egg, toast & cheese', time: '08:00', items: [item('whole-egg', 1), item('wholegrain-bread', 60), item('cheddar-cheese', 20), item('milk-2-percent', 250)] },
+  { id: 'lunch', name: 'Chicken salad & whole-grain toast', time: '12:30', items: [item('chicken-breast-cooked', 90), item('salad-leaves', 80), item('cucumber', 100), item('mushrooms', 100), item('celery', 50), item('olive-oil', 10), item('wholegrain-bread', 60)] },
+  { id: 'snack', name: 'Raisin Bran, milk & almonds', time: '15:00', items: [item('raisin-bran', 65), item('milk-2-percent', 200), item('almonds', 30), item('dried-cranberries', 15)] },
+  { id: 'dinner', name: 'Salmon & crisp salad', time: '17:30', items: [item('salmon-cooked', 100), item('salad-leaves', 80), item('cucumber', 150), item('mushrooms', 100), item('olive-oil', 15), item('wholegrain-bread', 30)] }
+];
+
+// General review options are public. Actual medications, supplement use,
+// body measurements, watch data and medical history are never shipped here.
+export const DEFAULT_SUPPLEMENTS = [
+  { id: 'psyllium-option', name: 'Psyllium fibre — option', status: 'review', time: '', kcal: null,
+    dose: 'Build toward 7 g/day of soluble psyllium fibre; powder amount depends on the label.',
+    note: 'Start with one labelled serving at lunch, then increase gradually toward the daily target split with dinner. Mix each dose with at least 250 mL liquid; never swallow dry. Avoid with swallowing difficulty or bowel blockage. Ask the pharmacist to confirm medicine spacing and the product dose. Health Canada supports 7 g/day of soluble psyllium fibre for lowering LDL.' },
+  { id: 'sterols-option', name: 'Plant sterols — optional', status: 'review', time: '', kcal: null,
+    dose: 'Optional: 1 g with lunch + 1 g with dinner; total 2 g/day.',
+    note: 'Use a clearly labelled product. Discuss with the pharmacist if taking cholesterol medication. Avoid with sitosterolaemia; not for pregnancy or breastfeeding without clinical advice. This is an option to review, not a prescription or a reason to stop medication.' }
+];
+export const DEFAULT_SETTINGS = {
+  ...LEGACY_SETTINGS, calories: 1900, protein: 80,
+  workNote: 'A flexible starter plan around 1,900 kcal with an 80 g protein goal. Adjust portions to maintain weight, appetite and activity. Food values are estimates pending package labels. Suggested swaps: 1% milk, reduced-fat cheese, oats on some mornings, or chickpeas in a salad. Use olive oil instead of butter. Your changes stay in this browser.'
 };

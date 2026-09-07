@@ -1,8 +1,9 @@
-import { FOOD_CATALOG, DEFAULT_MEALS, DEFAULT_SUPPLEMENTS, DEFAULT_SETTINGS } from './data.js';
+import { FOOD_CATALOG, DEFAULT_MEALS, DEFAULT_SUPPLEMENTS, DEFAULT_SETTINGS, LEGACY_EMPTY_TEMPLATE } from './data.js';
 import { setupPWA } from './pwa.js';
 import {
   STORAGE_KEY, aggregateNutrition, applyPlanImport, clone, createInitialState, ensureDay,
   exportFullState, exportPlan, fastingStatus, formatDuration, formatTime, localDateString,
+  migrateLegacyEmptyState,
   nutritionForFood, nutritionForMeal, recentAverage, recordMeasure, selectDate, setCheck,
   setNote, shiftDate, stringifyExport, targetDifference, updateDay, updateTemplate,
   validateFullRestore, validateState,
@@ -24,6 +25,7 @@ const baseTemplate = {
 const today = localDateString(new Date());
 let storageBlocked = false;
 let recoveryRaw = '';
+let migratedOnLoad = false;
 let state = loadState() || createInitialState(baseTemplate, today);
 state = ensureDay(state, state.selectedDate || today);
 let activeView = 'plan';
@@ -39,7 +41,11 @@ function loadState() {
     if (!stored) return null;
     recoveryRaw = stored;
     const result = validateState(JSON.parse(stored));
-    if (result.ok) return result.state;
+    if (result.ok) {
+      const migrated = migrateLegacyEmptyState(result.state, baseTemplate, LEGACY_EMPTY_TEMPLATE);
+      migratedOnLoad = migrated !== result.state;
+      return migrated;
+    }
     storageBlocked = true; recoveryRaw = stored;
     try { localStorage.setItem(`${STORAGE_KEY}-recovery`, stored); } catch { /* Keep the raw value in memory for this session. */ }
     queueMicrotask(() => showToast('NB Meal Plan saved data needs recovery. Export or import a backup before editing.'));
@@ -459,3 +465,4 @@ setInterval(() => {
   renderFasting(day());
 }, 30000);
 render();
+if (migratedOnLoad) persist();

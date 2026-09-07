@@ -164,6 +164,37 @@ export function ensureDay(state, date) {
   return next;
 }
 
+function deeplyEqual(left, right) {
+  if (Object.is(left, right)) return true;
+  if (typeof left !== typeof right || left === null || right === null) return false;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length && left.every((value, index) => deeplyEqual(value, right[index]));
+  }
+  if (typeof left !== 'object') return false;
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  return leftKeys.length === rightKeys.length && leftKeys.every((key) => hasOwn(right, key) && deeplyEqual(left[key], right[key]));
+}
+
+/**
+ * Replace the shipped blank template from older NB installs with the current
+ * starter plan. A day is replaced only when it is still an exact blank
+ * snapshot; edited days and edited templates remain intact.
+ */
+export function migrateLegacyEmptyState(state, starter, legacy) {
+  if (!isObject(state) || !isObject(starter) || !isObject(legacy) || !isObject(state.template)) return state;
+  const legacyTemplate = normalizeTemplate(legacy);
+  if (!deeplyEqual(state.template, legacyTemplate)) return state;
+
+  const starterTemplate = normalizeTemplate(starter);
+  const next = clone(state);
+  next.template = starterTemplate;
+  for (const [date, day] of Object.entries(next.days || {})) {
+    if (deeplyEqual(day, createDaySnapshot(legacyTemplate, date))) next.days[date] = createDaySnapshot(starterTemplate, date);
+  }
+  return next;
+}
+
 export function selectDate(state, date) {
   const next = ensureDay({ ...clone(state), selectedDate: date }, date);
   return next;
