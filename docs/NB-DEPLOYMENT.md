@@ -19,6 +19,8 @@ Copy the contents, including `.htaccess`, into this dedicated Hostinger document
 
 Namecheap has an A record `nbmealplan` pointing to `187.124.245.194` with a five-minute TTL. Keep the original `public_html` and `public_html/mealplan` contents intact.
 
+The app was manually deployed on September 7, 2026, with release `build-7b1d67575e336624`. HTTPS and the HTTP-to-HTTPS redirect were verified. All 13 public assets matched the prepared files, search-exclusion headers were present, hidden metadata returned 403, and the upload ZIP and default placeholder were moved to Trash. The original root home page remained byte-for-byte unchanged. The live app installed its service worker and reloaded offline with local data intact. A local update from the preceding NB build also preserved the plan, and a 390-pixel phone layout was checked. Physical iPhone testing has not been performed.
+
 The `prepare-nb-hostinger-branch.yml` workflow builds NB changes on `main` and publishes an exact deployment tree to `hostinger-nbmealplan` without force-pushing. It does not itself deploy files to Hostinger. The native Hostinger GitHub connection is still pending, so automatic website deployments are not enabled. Once that connection is available, select this repository, the `hostinger-nbmealplan` branch, and the dedicated directory above before enabling Auto-deployment.
 
 The app requests search exclusion through HTML and response headers. It remains accessible to anyone with the link; personal browser data is not served to other visitors. The service worker keeps its complete release cache separate from tracking storage and applies updates only through the app's update action. Export a full local backup before changing browsers or devices.
