@@ -374,3 +374,52 @@ export function exportFullState(state) {
 export function stringifyExport(value) {
   return JSON.stringify(value, null, 2);
 }
+
+/**
+ * Pair the saved supplement review with meal slots for display. This is a
+ * presentation mapping only: it never changes the saved schedule or status.
+ */
+export function buildMealSupplementPlan(current = {}, defaults = [], guidance = {}) {
+  const meals = Array.isArray(current?.meals) ? current.meals : [];
+  const saved = Array.isArray(current?.supplements) ? current.supplements : [];
+  const defaultSupplements = Array.isArray(defaults) ? defaults : [];
+  const guides = isObject(guidance) ? guidance : {};
+  const groupFor = (id) => guides[id]?.group || id;
+  const byMeal = Object.fromEntries(meals.map((meal) => [meal?.id, []]));
+  const mealMatches = (time) => meals.filter((meal) => time && meal?.time === time);
+  const activeUnassigned = [];
+  const activeGroups = new Set(saved.filter((supplement) => supplement?.status !== 'review').map((supplement) => groupFor(supplement?.id)));
+
+  for (const supplement of saved) {
+    if (supplement?.status === 'review') continue;
+    const matches = mealMatches(supplement?.time);
+    if (matches.length === 1 && hasOwn(byMeal, matches[0]?.id)) byMeal[matches[0].id].push({ kind: 'active', supplement: clone(supplement) });
+    else activeUnassigned.push(clone(supplement));
+  }
+
+  const selected = [];
+  const selectedGroups = new Set(activeGroups);
+  const candidates = [...saved.filter((supplement) => supplement?.status === 'review'), ...defaultSupplements];
+  for (const supplement of candidates) {
+    const id = supplement?.id;
+    const group = groupFor(id);
+    const guide = guides[id];
+    if (!guide || selectedGroups.has(group)) continue;
+    selectedGroups.add(group);
+    selected.push({ supplement: clone(supplement), guidance: clone(guide) });
+  }
+
+  for (const { supplement, guidance: guide } of selected) {
+    for (const slot of Array.isArray(guide.meals) ? guide.meals : []) {
+      if (!hasOwn(byMeal, slot?.mealId)) continue;
+      byMeal[slot.mealId].push({ kind: 'recommendation', supplement: clone(supplement), guidance: clone(guide), slot: clone(slot) });
+    }
+  }
+
+  return {
+    byMeal,
+    activeUnassigned,
+    recommendations: selected.map(({ supplement }) => supplement),
+    incomplete: saved.filter((supplement) => supplement?.status === 'review' && !guides[supplement?.id]).map(clone),
+  };
+}
