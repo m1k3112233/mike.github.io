@@ -4,8 +4,14 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const sourceDir = join(repoRoot, "meal-planner");
 const args = process.argv.slice(2);
+const sourceIndex = args.indexOf("--source");
+const sourceName = sourceIndex >= 0 && args[sourceIndex + 1] ? args[sourceIndex + 1] : "meal-planner";
+const allowedSources = new Set(["meal-planner", "nb-meal-planner"]);
+if (!allowedSources.has(sourceName)) {
+  throw new Error("--source must be meal-planner or nb-meal-planner");
+}
+const sourceDir = join(repoRoot, sourceName);
 const outputIndex = args.indexOf("--output");
 const outputBase = outputIndex >= 0 && args[outputIndex + 1] ? args[outputIndex + 1] : "dist";
 const flat = args.includes("--flat");
@@ -13,7 +19,7 @@ if (isAbsolute(outputBase) || !/^dist(?:-[a-z0-9][a-z0-9._-]*)?$/i.test(outputBa
   throw new Error("--output must be a repository-local dist or dist-* directory");
 }
 const outputDir = resolve(repoRoot, outputBase);
-const destinationDir = flat ? outputDir : join(outputDir, "meal-planner");
+const destinationDir = flat ? outputDir : join(outputDir, sourceName);
 const sourceResolved = resolve(sourceDir);
 const destinationResolved = resolve(destinationDir);
 if (
@@ -59,7 +65,7 @@ await writeFile(join(destinationDir, '.gitattributes'), '* text=auto eol=lf\n');
 const workerPath = join(destinationDir, "sw.js");
 let worker = await readFile(workerPath, "utf8");
 if (!worker.includes("__BUILD_VERSION__")) {
-  throw new Error("meal-planner/sw.js is missing the __BUILD_VERSION__ replacement token");
+  throw new Error(`${sourceName}/sw.js is missing the __BUILD_VERSION__ replacement token`);
 }
 worker = worker.replaceAll("__BUILD_VERSION__", buildVersion);
 
@@ -83,7 +89,7 @@ for (const [asset, marker] of shellAssets) {
   worker = worker.replaceAll(marker, integrity);
 }
 if (worker.includes("__SRI_")) {
-  throw new Error("meal-planner/sw.js contains an unknown SRI marker");
+  throw new Error(`${sourceName}/sw.js contains an unknown SRI marker`);
 }
 await writeFile(workerPath, worker);
 

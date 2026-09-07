@@ -1,0 +1,33 @@
+# Keep the app shell and worker fresh so browser and iPhone update checks do
+# not get trapped behind an old intermediary or browser HTTP cache.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|webmanifest|png|svg)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "^(index\.html|sw\.js)$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+  Header set X-Robots-Tag "noindex, nofollow, noarchive"
+  Header set Referrer-Policy "no-referrer"
+  Header set X-Content-Type-Options "nosniff"
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+# Do not expose a directory listing if a server is asked for an app folder.
+Options -Indexes
+
+# A Git checkout can leave metadata beside the deployed files. Never serve it
+# (or any other dot-file) if the Hostinger install directory contains one.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule (^|/)\. - [F,L]
+</IfModule>
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>

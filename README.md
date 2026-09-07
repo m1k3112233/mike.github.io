@@ -4,6 +4,8 @@ A plain HTML, CSS and JavaScript meal planner that works offline after its first
 
 The planner is live at [mealplan.codelement.com](https://mealplan.codelement.com/). The source is in `meal-planner/`; only that folder's deployable contents are published to the planner's own Hostinger document root. The existing root website is preserved.
 
+The separate NB planner lives in `nb-meal-planner/`, with its own browser storage, optional targets, and medication and supplement review lists. See [NB deployment instructions](docs/NB-DEPLOYMENT.md).
+
 ## Everyday use
 
 - Open **Plan** to adjust food quantities, meal times and daily checklists. Nutrition recalculates from each food's serving values.
