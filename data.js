@@ -285,29 +285,40 @@ export const DEFAULT_SUPPLEMENTS = [
 // Older saved product entries can show the current guidance without rewriting
 // their label, prescribed dose, status or tracking.
 const magnesiumGuidance = {
+  group: 'magnesium',
+  meals: [{ mealId: 'dinner', amount: '150 mg elemental magnesium', label: 'Optional', note: 'If supplementing dietary intake. Not an LDL treatment. Avoid without medical advice with kidney disease; check medicine spacing.' }],
   amount: '150 mg elemental magnesium per day, if supplementing dietary intake.',
-  timing: 'With dinner, around 17:30.',
+  timing: 'With dinner.',
   note: 'Optional nutritional support, not an LDL treatment. Avoid without medical advice with kidney disease. Reduce or stop if it causes diarrhoea; check medicine spacing with the pharmacist.',
   source: 'https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/'
 };
 export const SUPPLEMENT_GUIDANCE = {
   'psyllium-option': {
+    meals: [
+      { mealId: 'lunch', amount: 'Start with 1 labelled serving', label: 'Start here', note: 'Build gradually toward 7 g soluble psyllium fibre per day, split with dinner. Fibre grams are not powder grams. Every dose: at least 250 mL water; never dry. Check medicine spacing with the pharmacist.' },
+      { mealId: 'dinner', amount: 'Later: the second portion of your daily fibre', label: 'After building up', note: 'Add only as tolerated, splitting the 7 g/day soluble psyllium fibre target with lunch. Use the label for powder quantity. Every dose: at least 250 mL water; never dry. Check medicine spacing.' }
+    ],
     amount: 'Start with 1 labelled serving daily. Gradually build to 7 g of soluble psyllium fibre per day.',
-    timing: 'Start at lunch (12:30); split the eventual daily amount between lunch and dinner (17:30).',
+    timing: 'Start at lunch; split the eventual daily amount between lunch and dinner.',
     note: '7 g of soluble fibre is not necessarily 7 g of powder: use the product label. Mix every dose with at least 250 mL water; never take dry. Do not use with swallowing difficulty or bowel blockage. Have the pharmacist check medicine spacing.',
     source: 'https://www.canada.ca/en/health-canada/services/food-nutrition/food-labelling/health-claims/assessments/psyllium-products-blood-cholesterol-lowering-nutrition-health-claims-food-labelling.html'
   },
   'sterols-option': {
+    meals: [
+      { mealId: 'lunch', amount: '1,000 mg plant sterols', label: 'Optional', note: 'With food. Lunch + dinner = 2,000 mg/day. Have the pharmacist check the product alongside cholesterol medication.' },
+      { mealId: 'dinner', amount: '1,000 mg plant sterols', label: 'Optional', note: 'With food. Lunch + dinner = 2,000 mg/day.' }
+    ],
     amount: '2,000 mg (2 g) per day: 1,000 mg with each of two meals.',
-    timing: 'Lunch (12:30) and dinner (17:30), with food.',
+    timing: 'Lunch and dinner, with food.',
     note: 'An optional LDL-lowering addition. Have the pharmacist check the product alongside cholesterol medication. Avoid with sitosterolaemia; pregnancy or breastfeeding needs clinical advice. Do not change prescribed medication based on this recommendation.',
     source: 'https://www.canada.ca/en/health-canada/services/food-nutrition/food-labelling/health-claims/assessments/plant-sterols-blood-cholesterol-lowering-nutrition-health-claims-food-labelling.html'
   },
   'magnesium-option': magnesiumGuidance,
   'magnesium-photo': magnesiumGuidance,
   'vitamin-d-option': {
+    meals: [{ mealId: 'breakfast', amount: '400 IU (10 mcg) vitamin D', label: 'If needed', note: 'Only if vitamin D from food is not regular. Check other supplements to avoid duplicate doses.' }],
     amount: '400 IU (10 mcg) per day if dietary vitamin D is not regular.',
-    timing: 'With breakfast, around 08:00.',
+    timing: 'With breakfast.',
     note: 'For adults under 51: vitamin-D-containing foods daily or this supplement. Check other supplements for duplicate vitamin D. Not an LDL treatment.',
     source: 'https://www.canada.ca/en/health-canada/services/nutrients/vitamin-d.html'
   },

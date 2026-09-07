@@ -1,7 +1,7 @@
 import { FOOD_CATALOG, DEFAULT_MEALS, DEFAULT_SUPPLEMENTS, DEFAULT_SETTINGS, LEGACY_EMPTY_TEMPLATE, SUPPLEMENT_GUIDANCE } from './data.js';
 import { setupPWA } from './pwa.js';
 import {
-  STORAGE_KEY, aggregateNutrition, applyPlanImport, clone, createInitialState, ensureDay,
+  STORAGE_KEY, aggregateNutrition, applyPlanImport, buildMealSupplementPlan, clone, createInitialState, ensureDay,
   exportFullState, exportPlan, fastingStatus, formatDuration, formatTime, localDateString,
   migrateLegacyEmptyState, migrateStarterMacroTargets,
   nutritionForFood, nutritionForMeal, recentAverage, recordMeasure, selectDate, setCheck,
@@ -152,22 +152,41 @@ function renderPlan(current) {
   const loggedMeals = current.meals.filter((meal) => state.checks?.[state.selectedDate]?.[`meal:${meal.id}`]);
   const logged = aggregateNutrition(loggedMeals, [], current.foods);
   const diffs = targetDifference(summary, current.settings);
+  const supplementPlan = buildMealSupplementPlan(current, DEFAULT_SUPPLEMENTS, SUPPLEMENT_GUIDANCE);
   renderFasting(current);
-  $('#meals-list').innerHTML = current.meals.length ? current.meals.map(renderMeal).join('') : '<div class="card empty-state">No meals yet. Add the first one to shape your day.</div>';
+  $('#meals-list').innerHTML = current.meals.length ? current.meals.map(meal => renderMeal(meal, supplementPlan.byMeal[meal.id])).join('') : '<div class="card empty-state">No meals yet. Add the first one to shape your day.</div>';
   const mealCounts = { logged: loggedMeals.length, total: current.meals.length };
   $('#summary-card').innerHTML = renderSummary(summary, diffs, current.settings, logged, mealCounts);
   $('#mobile-summary').innerHTML = `<div class="card summary-card">${renderSummary(summary, diffs, current.settings, logged, mealCounts)}</div>`;
-  $('#supplements-card').innerHTML = renderSupplements(current);
+  $('#supplements-card').innerHTML = renderSupplements(current, supplementPlan);
   $('#medications-card').innerHTML = renderMedications(current);
   $('#energy-card').innerHTML = renderEnergyReference(current.settings);
   $('#checks-card').innerHTML = renderChecks(current);
   $('#daily-note').value = state.notes?.[state.selectedDate] || '';
 }
 
-function renderMeal(meal) {
+function renderMeal(meal, supplementRows = []) {
   const checked = Boolean(state.checks?.[state.selectedDate]?.[`meal:${meal.id}`]);
   const total = nutritionForMeal(meal, foods());
-  return `<article class="meal-card" data-meal-id="${esc(meal.id)}"><div class="meal-head"><div class="meal-title"><div><label class="meal-time">Time<input class="meal-time-input" data-meal-time="${esc(meal.id)}" type="time" value="${esc(meal.time)}" aria-label="${esc(meal.name)} time"></label><h3>${esc(meal.name)}</h3></div></div><div class="meal-actions"><label class="check-label"><input type="checkbox" data-meal-check="${esc(meal.id)}" ${checked ? 'checked' : ''}> Logged</label><button class="quiet-button" data-action="remove-meal" data-meal-id="${esc(meal.id)}" type="button" aria-label="Remove ${esc(meal.name)}">Remove</button></div></div><div class="meal-items">${(meal.items || []).map((item, index) => renderFoodRow(meal, item, index)).join('')}</div><button class="add-food-row" data-action="add-item" data-meal-id="${esc(meal.id)}" type="button">+ Add food</button><div class="meal-total"><span>${total.knownKcal === false ? 'Energy —' : `${Math.round(total.kcal)} kcal`}</span><strong>${total.protein == null ? '—' : `${Math.round(total.protein)}g protein`}</strong></div></article>`;
+  return `<article class="meal-card" data-meal-id="${esc(meal.id)}"><div class="meal-head"><div class="meal-title"><div><label class="meal-time">Time<input class="meal-time-input" data-meal-time="${esc(meal.id)}" type="time" value="${esc(meal.time)}" aria-label="${esc(meal.name)} time"></label><h3>${esc(meal.name)}</h3></div></div><div class="meal-actions"><label class="check-label"><input type="checkbox" data-meal-check="${esc(meal.id)}" ${checked ? 'checked' : ''}> Logged</label><button class="quiet-button" data-action="remove-meal" data-meal-id="${esc(meal.id)}" type="button" aria-label="Remove ${esc(meal.name)}">Remove</button></div></div><div class="meal-items">${(meal.items || []).map((item, index) => renderFoodRow(meal, item, index)).join('')}</div><button class="add-food-row" data-action="add-item" data-meal-id="${esc(meal.id)}" type="button">+ Add food</button><div class="meal-total"><span>${total.knownKcal === false ? 'Energy —' : `${Math.round(total.kcal)} kcal`}</span><strong>${total.protein == null ? '—' : `${Math.round(total.protein)}g protein`}</strong></div>${renderMealSupplements(meal, supplementRows)}</article>`;
+}
+
+function renderScheduledSupplement(supplement) {
+  const checked = Boolean(state.checks?.[state.selectedDate]?.[`supp:${supplement.id}`]);
+  return `<div class="meal-supplement"><div class="meal-supplement-head"><strong>${esc(supplement.name)}</strong><label class="check-label"><input type="checkbox" data-supp-check="${esc(supplement.id)}" ${checked ? 'checked' : ''} aria-label="${esc(supplement.name)} taken">Taken</label></div><p class="guidance-dose">${esc(supplement.dose || 'Dose not set')}</p><p class="guidance-time">${esc(formatTime(supplement.time))} · Your saved schedule</p>${supplement.note ? `<p class="supplement-note">${esc(supplement.note)}</p>` : ''}</div>`;
+}
+
+function renderMealSupplements(meal, rows) {
+  if (!rows.length) return '';
+  const recommendations = rows.some(row => row.kind === 'recommendation');
+  return `<section class="meal-supplements" aria-label="Supplements with ${esc(meal.name)}"><div class="meal-supplement-heading"><h4>With this meal</h4><span>${esc(formatTime(meal.time))}</span></div>${recommendations ? '<p class="supplement-note">Suggested amounts. Mark only what you actually take; optional items are not required.</p>' : ''}${rows.map(row => {
+    if (row.kind === 'active') return renderScheduledSupplement(row.supplement);
+    const { supplement, guidance, slot } = row;
+    const key = `supp-meal:${guidance.group || supplement.id}:${meal.id}`;
+    const checked = Boolean(state.checks?.[state.selectedDate]?.[key]);
+    const name = supplement.name.replace(/\s*—.*$/, '');
+    return `<div class="meal-supplement"><div class="meal-supplement-head"><strong>${esc(name)} <span class="supplement-tag">${esc(slot.label || 'Suggested')}</span></strong><label class="check-label"><input type="checkbox" data-daily-check="${esc(key)}" ${checked ? 'checked' : ''} aria-label="${esc(name)} taken with ${esc(meal.name)}">Taken</label></div><p class="guidance-dose">${esc(slot.amount)}</p>${slot.note ? `<p class="supplement-note">${esc(slot.note)}</p>` : ''}<details class="meal-supplement-details"><summary>Details & source</summary><p class="supplement-note">${esc(guidance.note)}${guidance.source ? ` <a href="${esc(guidance.source)}" target="_blank" rel="noopener noreferrer">Source</a>` : ''}</p></details></div>`;
+  }).join('')}</section>`;
 }
 
 function renderFoodRow(meal, item, index) {
@@ -187,20 +206,13 @@ function renderSummary(summary, diffs, settings, logged, mealCounts) {
   return `<div class="summary-top"><div><span class="eyebrow">Daily plan</span><div class="summary-kcal">${kcal}<small> kcal planned</small></div></div><span class="muted">${calorieTarget}</span></div><div class="target-diff ${diffs.kcal > 0 ? 'over' : ''}">${diffs.kcal == null ? 'Calorie goal not set' : `${Math.abs(Math.round(diffs.kcal))} kcal ${diffs.kcal >= 0 ? 'above' : 'below'} goal (estimated)`}</div><p class="summary-note">Food ${foodKcal} kcal + scheduled supplements ${supplementKcal} kcal.</p><div class="logged-line"><span>Meals eaten · ${mealCounts.logged}/${mealCounts.total}</span><strong>${logged.knownKcal ? `${Math.round(logged.kcal)} kcal` : '—'}</strong></div>${mealCounts.logged === 0 && mealCounts.total > 0 ? '<p class="summary-note">Check “Logged” on a meal after eating it.</p>' : ''}<div class="macro-list">${macro('Protein', summary.protein, settings.protein)}${macro('Carbs', summary.carbs, settings.carbs)}${macro('Fat', summary.fat, settings.fat)}</div><p class="summary-note">Grams shown are planned amounts. Goals are flexible and editable in Settings.</p>${summary.genericFood ? '<p class="summary-note">Nutrition uses estimates. Compare your package labels.</p>' : ''}${summary.unknownSupplementKcal ? '<p class="summary-note">Some supplement energy is unknown, so the total is incomplete.</p>' : ''}`;
 }
 
-function renderSupplements(current) {
-  const active = current.supplements.filter((supplement) => supplement.status !== 'review');
-  const review = current.supplements.filter((supplement) => supplement.status === 'review');
-  const row = (supplement) => { const key = `supp:${supplement.id}`; const checked = Boolean(state.checks?.[state.selectedDate]?.[key]); return `<label class="supplement-row"><span><input type="checkbox" data-supp-check="${esc(supplement.id)}" ${checked ? 'checked' : ''}> ${esc(supplement.name)}<small>${esc(supplement.dose || 'Dose not set')}</small></span><span class="supplement-meta">${esc(formatTime(supplement.time))}</span></label>${supplement.note ? `<p class="supplement-note">${esc(supplement.note)}</p>` : ''}`; };
-  const suggestionIds = new Set(Object.keys(SUPPLEMENT_GUIDANCE));
-  const listedIds = new Set(current.supplements.map(supplement => supplement.id));
-  if (listedIds.has('magnesium-photo')) listedIds.add('magnesium-option');
-  const suggestions = [...review.filter(supplement => suggestionIds.has(supplement.id)), ...DEFAULT_SUPPLEMENTS.filter(supplement => !listedIds.has(supplement.id))];
-  const incomplete = review.filter(supplement => !suggestionIds.has(supplement.id));
+function renderSupplements(current, supplementPlan) {
+  const { activeUnassigned: active, recommendations: suggestions, incomplete } = supplementPlan;
   const reviewRow = (supplement) => {
     const guide = SUPPLEMENT_GUIDANCE[supplement.id];
-    return guide ? `<div class="supplement-guidance"><strong>${esc(supplement.name)}</strong><p class="guidance-dose">${esc(guide.amount)}</p>${guide.timing ? `<p class="guidance-time">${esc(guide.timing)}</p>` : ''}<p class="supplement-note">${esc(guide.note)}${guide.source ? ` <a href="${esc(guide.source)}" target="_blank" rel="noopener noreferrer">Source</a>` : ''}</p><details><summary>Saved label and notes</summary><p class="supplement-note">${esc(supplement.dose || '')} ${esc(supplement.note || '')}</p></details></div>` : `<div class="supplement-row review-row"><span>${esc(supplement.name)}<small>${esc(supplement.dose || 'Daily dose not recorded')}${supplement.note ? ` · ${esc(supplement.note)}` : ''}</small></span><span class="supplement-meta">Dose not recorded</span></div>`;
+    return guide ? `<details class="supplement-guidance"><summary>${esc(supplement.name)}</summary><p class="guidance-dose">${esc(guide.amount)}</p>${guide.timing ? `<p class="guidance-time">${esc(guide.timing)}</p>` : ''}<p class="supplement-note">${esc(guide.note)}${guide.source ? ` <a href="${esc(guide.source)}" target="_blank" rel="noopener noreferrer">Source</a>` : ''}</p><p class="supplement-note">Saved label: ${esc(supplement.dose || '')} ${esc(supplement.note || '')}</p></details>` : `<div class="supplement-row review-row"><span>${esc(supplement.name)}<small>${esc(supplement.dose || 'Daily dose not recorded')}${supplement.note ? ` · ${esc(supplement.note)}` : ''}</small></span><span class="supplement-meta">Dose not recorded</span></div>`;
   };
-  return `<div class="section-heading"><div><span class="eyebrow">Supplements</span><h3>Daily amounts & timing</h3></div></div><div class="supplement-list">${active.length ? '<p class="supplement-note"><strong>Your daily schedule</strong></p>' + active.map(row).join('') : ''}${suggestions.length ? '<p class="supplement-note">Start with psyllium for LDL; plant sterols are an optional addition. Magnesium and vitamin D are conditional nutritional options. These recommendations are separate from your record of doses taken.</p>' + suggestions.map(reviewRow).join('') : ''}${incomplete.length ? '<p class="supplement-note"><strong>Dose details to add</strong><br>Record the full label and actual daily amount in Settings before scheduling.</p>' + incomplete.map(reviewRow).join('') : ''}${!current.supplements.length ? '<p class="supplement-note">Add supplements in Settings.</p>' : ''}</div>`;
+  return `<div class="section-heading"><div><span class="eyebrow">Supplements</span><h3>Supplement details</h3></div></div><p class="supplement-note">Meal-time amounts and Taken checks are inside the meal cards. Recommendations follow breakfast, lunch and dinner when their times change. Taken checks save on this device.</p><div class="supplement-list">${active.length ? '<p class="supplement-note"><strong>Other saved times</strong><br>These keep the time recorded in Settings.</p>' + active.map(renderScheduledSupplement).join('') : ''}${suggestions.map(reviewRow).join('')}${incomplete.length ? '<p class="supplement-note"><strong>Dose details to add</strong><br>Record the full label and actual daily amount in Settings before scheduling.</p>' + incomplete.map(reviewRow).join('') : ''}</div>`;
 }
 
 function renderMedications(current) {
