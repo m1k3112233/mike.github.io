@@ -1,0 +1,59 @@
+name: Prepare Hostinger app branch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "meal-planner/**"
+      - "scripts/**"
+      - "tests/**"
+      - "package.json"
+      - ".github/workflows/prepare-hostinger-branch.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hostinger-mealplanner
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm test
+      - run: npm run prepare-deploy -- --output dist
+
+      - name: Publish app contents to the deployment branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          # A separate index builds an exact deployment tree. No source files,
+          # stale assets, or nested dist directory can enter the public branch.
+          export GIT_INDEX_FILE="${RUNNER_TEMP}/dayplate-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.index"
+          git read-tree --empty
+          git --work-tree="$PWD/dist/meal-planner" add --all
+          tree=$(git write-tree)
+          parent=$(git rev-parse --verify refs/remotes/origin/hostinger-mealplanner 2>/dev/null || true)
+          parent_args=()
+          if [ -n "$parent" ]; then parent_args=(-p "$parent"); fi
+          previous_tree=""
+          if [ -n "$parent" ]; then previous_tree=$(git rev-parse "$parent^{tree}"); fi
+          if [ "$tree" = "$previous_tree" ]; then
+            echo "Hostinger branch already matches this build."
+          else
+            commit=$(git commit-tree "$tree" "${parent_args[@]}" -m "Deploy Dayplate from ${GITHUB_SHA}")
+            git push origin "$commit:refs/heads/hostinger-mealplanner"
+          fi

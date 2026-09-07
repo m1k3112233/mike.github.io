@@ -1,0 +1,12 @@
+{
+  "name": "meal-planner-static",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Static Meal Planner app and deployment preparation tools",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs && node scripts/test-pwa.mjs",
+    "prepare-deploy": "node scripts/prepare-deploy.mjs",
+    "check:deploy": "npm test && npm run prepare-deploy -- --output dist"
+  }
+}
