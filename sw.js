@@ -1,5 +1,5 @@
-/* The preparation script replaces build-58b4e77cee57dd29 with a content fingerprint. */
-const BUILD_VERSION = "build-58b4e77cee57dd29";
+/* The preparation script replaces build-a0ace7525ec73d2d with a content fingerprint. */
+const BUILD_VERSION = "build-a0ace7525ec73d2d";
 const VERSION = BUILD_VERSION.startsWith("__") ? "dev" : BUILD_VERSION;
 const APP_ROOT = new URL("./", self.location);
 const ROOT_PATH = APP_ROOT.pathname.endsWith("/") ? APP_ROOT.pathname : `${APP_ROOT.pathname}/`;
@@ -24,10 +24,10 @@ const SHELL_ASSETS = [
 ];
 const SHELL_INTEGRITY = {
   "./index.html": "sha256-OHTpQwLW4o7ZPoWJphgYVOP5iYv0+/8apw0AVvbwM8Y=",
-  "./styles.css": "sha256-iTDWYe0+7fGdwwxiyqDBoCmO9dL/wY3XSODS+tOH3GE=",
-  "./app.js": "sha256-NqucZJoeM3VbRYPwVSQuMlTONPu6m9tkCBioPMWqrQk=",
-  "./model.js": "sha256-SOeNSx0AlyDvoM4Xuwp6pkAgzTUiFtHK9BndfuaZDQk=",
-  "./data.js": "sha256-hxIjjC/sLkg/AH513AqRDFFkZlStOigUMrWvVH2yQms=",
+  "./styles.css": "sha256-fRGGxKIJBq5bQN1bBCnohEBNQF5+0D11ZdtWwCqxTHw=",
+  "./app.js": "sha256-qR7soBCSnBVDzJPwnVDeOEKnq9v9eJzaYreGKmZNa5M=",
+  "./model.js": "sha256-m5FvNfSgeTPSMEE7/vv8HVR/NWZZZfpOuf7H3UTN4TI=",
+  "./data.js": "sha256-6oV0D/7RKwnuvJQaVDa3Hg9FB8dTT67uPPcgdB1+Gp0=",
   "./pwa.js": "sha256-2mrw2g++mndYSN1JGMiBRSV+COFkjzu7tbG7LPeGs4Y=",
   "./manifest.webmanifest": "sha256-EskvHu27/XnC/JHrrfjf8TnIBZSz1YQD1OZ2K9hL4cQ=",
   "./icons/icon-192.svg": "sha256-AeEoEyKuxFuMTk3CWUNNLplOqInwljGdkih38lJI56o=",

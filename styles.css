@@ -117,6 +117,13 @@ h3 { color: var(--forest); letter-spacing: -.03em; font-size: 1.08rem; margin: 5
 .macro-list { display: grid; gap: 11px; margin-top: 18px; }
 .macro-line { display: grid; grid-template-columns: 66px 1fr 54px; gap: 8px; align-items: center; font-size: .72rem; }
 .macro-line > span:first-child { color: var(--muted); }
+.macro-line > span:first-child small { display: block; margin-top: 3px; font-size: .64rem; white-space: nowrap; }
+.supplement-guidance { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.supplement-guidance > strong { font-size: .83rem; }
+.guidance-dose { margin: 7px 0 4px; color: var(--forest); font-size: .82rem; font-weight: 650; line-height: 1.45; }
+.guidance-time { margin: 4px 0; color: var(--forest); font-size: .75rem; line-height: 1.45; }
+.supplement-guidance details { color: var(--muted); font-size: .7rem; margin-top: 8px; }
+.supplement-guidance summary { cursor: pointer; }
 .macro-bar { height: 6px; background: #e9ece5; border-radius: 10px; overflow: hidden; }
 .macro-bar span { display: block; height: 100%; border-radius: inherit; background: var(--forest); }
 .macro-line:nth-child(2) .macro-bar span { background: #7da35a; }.macro-line:nth-child(3) .macro-bar span { background: #d0a650; }.macro-line:nth-child(4) .macro-bar span { background: #b88670; }

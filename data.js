@@ -272,9 +272,58 @@ export const DEFAULT_SUPPLEMENTS = [
     note: 'Start with one labelled serving at lunch, then increase gradually toward the daily target split with dinner. Mix each dose with at least 250 mL liquid; never swallow dry. Avoid with swallowing difficulty or bowel blockage. Ask the pharmacist to confirm medicine spacing and the product dose. Health Canada supports 7 g/day of soluble psyllium fibre for lowering LDL.' },
   { id: 'sterols-option', name: 'Plant sterols — optional', status: 'review', time: '', kcal: null,
     dose: 'Optional: 1 g with lunch + 1 g with dinner; total 2 g/day.',
-    note: 'Use a clearly labelled product. Discuss with the pharmacist if taking cholesterol medication. Avoid with sitosterolaemia; not for pregnancy or breastfeeding without clinical advice. This is an option to review, not a prescription or a reason to stop medication.' }
+    note: 'Use a clearly labelled product. Discuss with the pharmacist if taking cholesterol medication. Avoid with sitosterolaemia; not for pregnancy or breastfeeding without clinical advice. This is an option to review, not a prescription or a reason to stop medication.' },
+  { id: 'magnesium-option', name: 'Magnesium citrate — optional', status: 'review', time: '17:30', kcal: null,
+    dose: '150 mg elemental magnesium with dinner, if supplementing dietary intake.',
+    note: 'Not an LDL treatment. Avoid without medical advice with kidney disease. Reduce or stop if it causes diarrhoea. Check medicine spacing with the pharmacist.' },
+  { id: 'vitamin-d-option', name: 'Vitamin D — if dietary intake is low', status: 'review', time: '08:00', kcal: null,
+    dose: '400 IU (10 mcg) with breakfast if not getting vitamin D regularly from food.',
+    note: 'General guidance for adults under 51. Check other products to avoid duplicate doses. Not an LDL treatment.' }
 ];
+
+// Recommendations are separate from the saved record of what is actually used.
+// Older saved product entries can show the current guidance without rewriting
+// their label, prescribed dose, status or tracking.
+const magnesiumGuidance = {
+  amount: '150 mg elemental magnesium per day, if supplementing dietary intake.',
+  timing: 'With dinner, around 17:30.',
+  note: 'Optional nutritional support, not an LDL treatment. Avoid without medical advice with kidney disease. Reduce or stop if it causes diarrhoea; check medicine spacing with the pharmacist.',
+  source: 'https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/'
+};
+export const SUPPLEMENT_GUIDANCE = {
+  'psyllium-option': {
+    amount: 'Start with 1 labelled serving daily. Gradually build to 7 g of soluble psyllium fibre per day.',
+    timing: 'Start at lunch (12:30); split the eventual daily amount between lunch and dinner (17:30).',
+    note: '7 g of soluble fibre is not necessarily 7 g of powder: use the product label. Mix every dose with at least 250 mL water; never take dry. Do not use with swallowing difficulty or bowel blockage. Have the pharmacist check medicine spacing.',
+    source: 'https://www.canada.ca/en/health-canada/services/food-nutrition/food-labelling/health-claims/assessments/psyllium-products-blood-cholesterol-lowering-nutrition-health-claims-food-labelling.html'
+  },
+  'sterols-option': {
+    amount: '2,000 mg (2 g) per day: 1,000 mg with each of two meals.',
+    timing: 'Lunch (12:30) and dinner (17:30), with food.',
+    note: 'An optional LDL-lowering addition. Have the pharmacist check the product alongside cholesterol medication. Avoid with sitosterolaemia; pregnancy or breastfeeding needs clinical advice. Do not change prescribed medication based on this recommendation.',
+    source: 'https://www.canada.ca/en/health-canada/services/food-nutrition/food-labelling/health-claims/assessments/plant-sterols-blood-cholesterol-lowering-nutrition-health-claims-food-labelling.html'
+  },
+  'magnesium-option': magnesiumGuidance,
+  'magnesium-photo': magnesiumGuidance,
+  'vitamin-d-option': {
+    amount: '400 IU (10 mcg) per day if dietary vitamin D is not regular.',
+    timing: 'With breakfast, around 08:00.',
+    note: 'For adults under 51: vitamin-D-containing foods daily or this supplement. Check other supplements for duplicate vitamin D. Not an LDL treatment.',
+    source: 'https://www.canada.ca/en/health-canada/services/nutrients/vitamin-d.html'
+  },
+  'fish-oil-photo': {
+    amount: 'No additional fish oil recommended specifically for lowering LDL.',
+    timing: 'If already prescribed or advised for another reason, follow that schedule.',
+    note: 'The photographed product provides EPA 180 mg + DHA 120 mg per softgel. Fish oil is not a substitute for LDL-lowering treatment; the meal plan already includes salmon.',
+    source: 'https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/'
+  },
+  'greens-photo': {
+    amount: 'No dose recommended without the full ingredients and serving label.',
+    timing: '',
+    note: 'Greens powder is not required for the cholesterol plan. The front photo does not establish the ingredients or interactions.'
+  }
+};
 export const DEFAULT_SETTINGS = {
-  ...LEGACY_SETTINGS, calories: 1900, protein: 80,
+  ...LEGACY_SETTINGS, calories: 1900, protein: 80, carbs: 250, fat: 65,
   workNote: 'A flexible starter plan around 1,900 kcal with an 80 g protein goal. Adjust portions to maintain weight, appetite and activity. Food values are estimates pending package labels. Suggested swaps: 1% milk, reduced-fat cheese, oats on some mornings, or chickpeas in a salad. Use olive oil instead of butter. Your changes stay in this browser.'
 };
