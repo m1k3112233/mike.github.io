@@ -2,7 +2,7 @@
 
 A plain HTML, CSS and JavaScript meal planner that works offline after its first successful online load. No application server, database, account, analytics or remote font service is required.
 
-The existing root website is preserved. The planner source is in `meal-planner/`; only that folder's deployable contents are published to the planner's own Hostinger directory.
+The planner is live at [mealplan.codelement.com](https://mealplan.codelement.com/). The source is in `meal-planner/`; only that folder's deployable contents are published to the planner's own Hostinger document root. The existing root website is preserved.
 
 ## Everyday use
 
@@ -15,7 +15,7 @@ The existing root website is preserved. The planner source is in `meal-planner/`
 
 ## Data and privacy
 
-Personal tracking stays in browser storage. App updates do not clear it. The app requests search-engine exclusion and is not linked from the main website. This is an unlisted public app, not password protection. Browser storage belongs to the website origin, so other applications on that same origin may share access to storage.
+Personal tracking stays in browser storage. App updates do not clear it. The app requests search-engine exclusion and is not linked from the main website. This is an unlisted public app, not password protection. Browser storage is isolated to the app origin (`https://mealplan.codelement.com/`); changing the domain, subdomain, browser, or device creates a separate storage area.
 
 Backups are local JSON files. Export a full backup regularly and before changing browsers, devices or domains, or clearing website data. Browser storage can be removed by the browser or device; offline caching is not a backup. Plan-only imports preserve tracking history; a full restore explicitly replaces it after review.
 
@@ -30,4 +30,4 @@ npm test
 npm run prepare-deploy -- --output dist
 ```
 
-Serve the generated `dist/` folder with a local HTTP server and open `/meal-planner/` for offline/update testing. Service workers require HTTPS, except on localhost. Opening the HTML as a local file does not install an offline app.
+Serve the generated `dist/` folder with a local HTTP server and open `/meal-planner/` for offline/update testing. The same prepared contents can be served at the subdomain document root because all app URLs are relative and the worker derives its scope from its own location. Service workers require HTTPS, except on localhost. Opening the HTML as a local file does not install an offline app.
