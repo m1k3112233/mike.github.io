@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f4a3b">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="NB Meal Plan local daily meal planner">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NB Meal Plan">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>NB Meal Plan — Your daily meal planner</title>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#plan" aria-label="NB Meal Plan home">
+        <span class="brand-mark" aria-hidden="true">NB</span>
+        <span><strong>NB Meal Plan</strong><small>Your local daily meal planner</small></span>
+      </a>
+      <div class="sidebar-date">
+        <label for="date-picker">Planning day</label>
+        <input id="date-picker" type="date">
+      </div>
+      <nav class="nav-list">
+        <button class="nav-item active" data-view="plan" type="button"><span class="nav-icon">▦</span>Plan</button>
+        <button class="nav-item" data-view="progress" type="button"><span class="nav-icon">↗</span>Progress</button>
+        <button class="nav-item" data-view="foods" type="button"><span class="nav-icon">◒</span>Foods</button>
+        <button class="nav-item" data-view="settings" type="button"><span class="nav-icon">⚙</span>Settings</button>
+      </nav>
+      <div class="sidebar-foot">
+        <button id="export-plan" class="text-button" type="button">↓ Export this plan</button>
+        <button id="export-backup" class="text-button" type="button">↓ Full backup</button>
+        <button id="import-button" class="text-button" type="button">↑ Import</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+        <p class="privacy-note">Stored only on this device.</p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark" aria-hidden="true">NB</span><strong>NB Meal Plan</strong></div>
+        <div class="date-controls">
+          <button id="prev-day" class="icon-button" type="button" aria-label="Previous day">‹</button><button id="today-button" class="today-button" type="button">Today</button>
+          <div><span class="eyebrow">Today’s focus</span><h1 id="page-date">Plan</h1></div>
+          <button id="next-day" class="icon-button" type="button" aria-label="Next day">›</button>
+        </div>
+        <div class="topbar-actions"><span id="save-status" class="save-status">Saved on this device</span><span id="pwa-status" class="pwa-status" aria-live="polite"></span><button id="pwa-update" class="button button-small pwa-update" type="button" hidden>Apply update</button><button id="mobile-more" class="icon-button" type="button" aria-label="More options">•••</button></div>
+      </header>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <p id="storage-warning" class="storage-warning" role="alert" hidden></p>
+
+      <section id="view-plan" class="view-panel active" data-panel="plan">
+        <div class="plan-heading">
+          <div><span class="eyebrow" id="day-label">Monday, September 7</span><h2>Keep the day simple.</h2><p class="lede">A flexible plan with clear numbers and room for real life.</p></div>
+          <button id="save-template" class="button button-secondary" type="button">Use this plan for new days</button>
+        </div>
+        <div id="mobile-summary" class="mobile-summary"></div>
+        <div class="plan-layout">
+          <div class="meal-column">
+            <div class="section-heading"><div><span class="eyebrow">Meals</span><h3>Your day at a glance</h3></div><button id="add-meal" class="button button-small" type="button">+ Add meal</button></div>
+            <div id="fasting-card" class="fasting-card"></div>
+            <div id="meals-list" class="meals-list"></div>
+            <div class="notes-card card"><div class="section-heading"><div><span class="eyebrow">A note for later</span><h3>Daily note</h3></div><span class="muted">Private</span></div><textarea id="daily-note" rows="3" maxlength="3000" placeholder="What would make today easier?"></textarea></div>
+          </div>
+          <aside class="summary-column" aria-label="Daily summary">
+            <div id="summary-card" class="card summary-card"></div>
+            <div id="supplements-card" class="card supplements-card"></div>
+            <div id="medications-card" class="card supplements-card"></div>
+            <div id="energy-card" class="card energy-card"></div>
+            <div id="checks-card" class="card checks-card"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="view-progress" class="view-panel" data-panel="progress" hidden>
+        <div class="page-heading"><span class="eyebrow">Progress</span><h2>Notice the trend, gently.</h2><p class="lede">A private record kept on this device. Seven means seven entries here.</p></div>
+        <div id="progress-content" class="progress-grid"></div>
+      </section>
+
+      <section id="view-foods" class="view-panel" data-panel="foods" hidden>
+        <div class="page-heading page-heading-row"><div><span class="eyebrow">Foods</span><h2>Your food library</h2><p class="lede">Branded entries show their label values; generic entries are estimates.</p></div><button id="add-food" class="button" type="button">+ Add custom food</button></div>
+        <div id="foods-list" class="foods-grid"></div>
+      </section>
+
+      <section id="view-settings" class="view-panel" data-panel="settings" hidden>
+        <div class="page-heading"><span class="eyebrow">Settings</span><h2>Make the plan yours.</h2><p class="lede">Targets, timings, and as-prescribed details stay on this device.</p></div>
+        <div class="settings-layout"><form id="settings-form" class="card settings-card"></form><div class="card settings-tools"><span class="eyebrow">Your data</span><h3>Take it with you</h3><p>Export a plan to share its structure, or make a full backup before changing devices.</p><div class="tool-stack"><button id="settings-export-plan" class="button button-secondary" type="button">Export this plan</button><button id="settings-export-backup" class="button button-secondary" type="button">Export full backup</button><button id="settings-import" class="button button-secondary" type="button">Import JSON</button></div><p id="storage-message" class="muted"></p></div></div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="Mobile navigation">
+    <button class="nav-item active" data-view="plan" type="button"><span class="nav-icon">▦</span><span>Plan</span></button>
+    <button class="nav-item" data-view="progress" type="button"><span class="nav-icon">↗</span><span>Progress</span></button>
+    <button class="nav-item" data-view="foods" type="button"><span class="nav-icon">◒</span><span>Foods</span></button>
+    <button class="nav-item" data-view="settings" type="button"><span class="nav-icon">⚙</span><span>Settings</span></button>
+  </nav>
+
+  <dialog id="food-dialog" class="dialog"><form method="dialog" id="food-form"><div class="dialog-heading"><div><span class="eyebrow">Food library</span><h2 id="food-dialog-title">Add a food</h2></div><button formnovalidate class="icon-button" value="cancel" aria-label="Close">×</button></div><input id="food-id" type="hidden"><label>Food name<input id="food-name" required maxlength="120"></label><div class="form-grid two"><label>Unit<select id="food-unit"><option value="g">g</option><option value="mL">mL</option><option value="egg">egg</option><option value="fruit">fruit</option><option value="scoop">scoop</option></select></label><label>Serving size<input id="food-serving" type="number" min="0.01" step="any" required></label><label>Step size<input id="food-step" type="number" min="0.01" step="any" required></label><label>Calories / serving<input id="food-kcal" type="number" min="0" step="any"></label><label>Protein / serving<input id="food-protein" type="number" min="0" step="any"></label><label>Carbs / serving<input id="food-carbs" type="number" min="0" step="any"></label><label>Fat / serving<input id="food-fat" type="number" min="0" step="any"></label></div><label>Source / note<input id="food-note" maxlength="240" placeholder="e.g. package label"></label><div class="dialog-actions"><button formnovalidate class="button button-secondary" value="cancel">Cancel</button><button class="button" id="food-save" value="default">Save food</button></div></form></dialog>
+  <dialog id="meal-dialog" class="dialog"><form method="dialog" id="meal-form"><div class="dialog-heading"><div><span class="eyebrow">Plan</span><h2>Add a meal</h2></div><button formnovalidate class="icon-button" value="cancel" aria-label="Close">×</button></div><label>Meal name<input id="meal-name" required maxlength="120" placeholder="Afternoon meal"></label><label>Time<input id="meal-time" type="time" required value="12:00"></label><div class="dialog-actions"><button formnovalidate class="button button-secondary" value="cancel">Cancel</button><button class="button" id="meal-save" value="default">Add meal</button></div></form></dialog>
+  <dialog id="food-picker" class="dialog"><form method="dialog" id="food-picker-form"><div class="dialog-heading"><div><span class="eyebrow">Add to meal</span><h2>Choose a food</h2></div><button formnovalidate class="icon-button" value="cancel" aria-label="Close">×</button></div><label>Search foods<input id="food-search" type="search" autocomplete="off" placeholder="Start typing a food name"></label><label>Food<select id="food-choice" size="6"></select></label><div class="dialog-actions"><button formnovalidate class="button button-secondary" value="cancel">Cancel</button><button class="button" value="default">Add food</button></div></form></dialog>
+  <dialog id="import-dialog" class="dialog"><form method="dialog" id="import-form"><div class="dialog-heading"><div><span class="eyebrow">Import preview</span><h2>Ready to bring this in?</h2></div><button formnovalidate class="icon-button" value="cancel" aria-label="Close">×</button></div><p id="import-preview"></p><label class="radio-row"><input type="radio" name="import-mode" value="plan" checked> <span><strong>Plan only</strong><small>Replace this day and the template. Keep progress, notes, and checks on other days.</small></span></label><label class="radio-row"><input type="radio" name="import-mode" value="full"> <span><strong>Full backup</strong><small>Replace all NB Meal Plan data after explicit confirmation.</small></span></label><div class="dialog-actions"><button formnovalidate class="button button-secondary" value="cancel">Cancel</button><button class="button" id="import-apply" value="default">Apply import</button></div></form></dialog>
+  <dialog id="day-dialog" class="dialog"><form method="dialog" id="day-form"><div class="dialog-heading"><h2>Choose planning day</h2><button formnovalidate class="icon-button" value="cancel" aria-label="Close">×</button></div><label>Planning day<input id="mobile-date" type="date" required></label><div class="dialog-actions"><button formnovalidate class="button button-secondary" value="cancel">Cancel</button><button class="button" value="default">Open day</button></div></form></dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
